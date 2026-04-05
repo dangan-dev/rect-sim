@@ -8,14 +8,18 @@
 .container {
   width: 100%;
   max-width: 100%;
+  height: 100vh;
   margin: 0;
   padding: 2rem;
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
 }
 
 header {
   margin-bottom: 2rem;
+  flex-shrink: 0;
 }
 
 header h1 {
@@ -30,8 +34,10 @@ header p {
 .main-layout {
   display: flex;
   gap: 2rem;
-  align-items: flex-start;
+  align-items: stretch;
   width: 100%;
+  flex: 1;
+  min-height: 0; /* flexアイテムが縮めるように設定 */
 }
 
 .stage-container {
@@ -47,13 +53,13 @@ header p {
   justify-content: flex-start; /* 上寄せ */
   padding: 2rem;
   gap: 1.5rem; /* SVGと情報パネルの隙間 */
-  height: max-content; /* コンテンツの高さに合わせる */
 }
 
 .world-svg {
   width: 100%;
   max-width: 800px;
-  height: auto;
+  flex: 1;
+  min-height: 0;
   display: block;
   background: #ffffff; /* 仮想ウィンドウの背景 */
   box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
@@ -70,6 +76,7 @@ header p {
   border: 1px solid #cbd5e1;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .info-table {
@@ -130,6 +137,7 @@ header p {
   padding: 1.5rem;
   border-radius: 8px;
   border: 1px solid #dee2e6;
+  overflow-y: auto;
 }
 
 .info-panel section {

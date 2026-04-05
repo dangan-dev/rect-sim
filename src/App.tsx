@@ -10,7 +10,7 @@ interface Rect {
 
 function App() {
   // 仮想ウィンドウ（ワールド）のサイズ
-  const worldSize = { width: 1000, height: 500 };
+  const worldSize = { width: 1000, height: 600 };
 
   // ビューポートの状態
   const [viewport, setViewport] = useState<Rect>({
@@ -191,6 +191,32 @@ function App() {
               className="draggable-rect"
               onMouseDown={handleMouseDown}
             />
+            {/* Target Rect 左上の座標 (Rectの上に配置) */}
+            <text 
+              x={targetRect.x} 
+              y={targetRect.y - 15} 
+              fill="#c0392b" 
+              fontSize="16" 
+              fontWeight="bold"
+              textAnchor="middle"
+              dominantBaseline="central"
+              style={{ pointerEvents: 'none', paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}
+            >
+              ({Math.round(targetRect.x)}, {Math.round(targetRect.y)})
+            </text>
+            {/* Target Rect 右下の座標 (Rectの下に配置) */}
+            <text 
+              x={targetRect.x + targetRect.width} 
+              y={targetRect.y + targetRect.height + 15} 
+              fill="#c0392b" 
+              fontSize="16" 
+              fontWeight="bold" 
+              textAnchor="middle"
+              dominantBaseline="central"
+              style={{ pointerEvents: 'none', paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}
+            >
+              ({Math.round(targetRect.x + targetRect.width)}, {Math.round(targetRect.y + targetRect.height)})
+            </text>
           </svg>
 
           <div className="bottom-info">
