@@ -191,7 +191,7 @@ function App() {
                 <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#ddd" strokeWidth="1" />
               </pattern>
             </defs>
-            <rect x="0" y="0" width="100%" height="100%" fill="url(#grid)" />
+            <rect x="0" y="0" width={worldSize.width} height={worldSize.height} fill="url(#grid)" />
 
             {/* ビューポートのインジケーター */}
             <rect
