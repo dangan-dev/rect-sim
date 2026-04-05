@@ -204,6 +204,59 @@ function App() {
               strokeWidth="4"
               strokeDasharray="8,4"
             />
+            
+            {/* 垂直スクロールバー (仮想) */}
+            {worldSize.height > viewport.height && (
+              <g className="scrollbar-v">
+                {/* トラック */}
+                <rect 
+                  x={viewport.x + viewport.width - 12} 
+                  y={viewport.y + 4} 
+                  width={8} 
+                  height={viewport.height - 8} 
+                  fill="#cbd5e1" 
+                  fillOpacity="0.3"
+                  rx="4"
+                />
+                {/* つまみ */}
+                <rect 
+                  x={viewport.x + viewport.width - 11} 
+                  y={viewport.y + 4 + (viewport.y / worldSize.height) * (viewport.height - 8)} 
+                  width={6} 
+                  height={(viewport.height / worldSize.height) * (viewport.height - 8)} 
+                  fill="#64748b" 
+                  fillOpacity="0.6"
+                  rx="3"
+                />
+              </g>
+            )}
+
+            {/* 水平スクロールバー (仮想) */}
+            {worldSize.width > viewport.width && (
+              <g className="scrollbar-h">
+                {/* トラック */}
+                <rect 
+                  x={viewport.x + 4} 
+                  y={viewport.y + viewport.height - 12} 
+                  width={viewport.width - 8} 
+                  height={8} 
+                  fill="#cbd5e1" 
+                  fillOpacity="0.3"
+                  rx="4"
+                />
+                {/* つまみ */}
+                <rect 
+                  x={viewport.x + 4 + (viewport.x / worldSize.width) * (viewport.width - 8)} 
+                  y={viewport.y + viewport.height - 11} 
+                  width={(viewport.width / worldSize.width) * (viewport.width - 8)} 
+                  height={6} 
+                  fill="#64748b" 
+                  fillOpacity="0.6"
+                  rx="3"
+                />
+              </g>
+            )}
+
             {/* 左上の座標 */}
             <text 
               x={viewport.x} 
