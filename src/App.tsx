@@ -35,31 +35,57 @@ function App() {
   // リサイズ時の増分（ステップ）
   const [resizeStep, setResizeStep] = useState(10);
 
+  // ユーザー定義のスクリプト（数式）
+  const [script, setScript] = useState<string>("return {\n  ...rect,\n  x: Math.max(viewport.x, Math.min(rect.x, viewport.x + viewport.width - rect.width)),\n  y: Math.max(viewport.y, Math.min(rect.y, viewport.y + viewport.height - rect.height))\n};");
+  const [scriptError, setScriptError] = useState<string | null>(null);
+
+  // スクリプトを適用して矩形を補正する関数
+  const applyScript = useCallback((rect: Rect, vp: Rect): Rect => {
+    try {
+      const fn = new Function('rect', 'viewport', script);
+      const result = fn(rect, vp);
+      
+      if (result && typeof result.x === 'number' && typeof result.y === 'number' && 
+          typeof result.width === 'number' && typeof result.height === 'number') {
+        setScriptError(null);
+        return result;
+      }
+      throw new Error("Invalid return object. Must be {x, y, width, height}.");
+    } catch (err) {
+      setScriptError(err instanceof Error ? err.message : String(err));
+      return rect;
+    }
+  }, [script]);
+
   // キーボード操作 (+ / - キー)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === '+' || e.key === '=') {
-        setTargetRect(prev => ({ 
-          ...prev, 
-          x: prev.x - (resizeStep / 2),
-          width: prev.width + resizeStep 
-        }));
+        setTargetRect(prev => {
+          const next = { 
+            ...prev, 
+            x: prev.x - (resizeStep / 2),
+            width: prev.width + resizeStep 
+          };
+          return applyScript(next, viewport);
+        });
       } else if (e.key === '-' || e.key === '_') {
         setTargetRect(prev => {
           const newWidth = Math.max(10, prev.width - resizeStep);
           const diff = prev.width - newWidth;
-          return { 
+          const next = { 
             ...prev, 
             x: prev.x + (diff / 2),
             width: newWidth 
           };
+          return applyScript(next, viewport);
         });
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [resizeStep]);
+  }, [resizeStep, viewport, applyScript]);
 
   // ドラッグ開始
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -90,12 +116,20 @@ function App() {
     point.y = e.clientY;
     const transformedPoint = point.matrixTransform(svg.getScreenCTM()?.inverse());
 
-    setTargetRect(prev => ({
-      ...prev,
-      x: transformedPoint.x - dragOffset.x,
-      y: transformedPoint.y - dragOffset.y
-    }));
-  }, [isDragging, dragOffset]);
+    setTargetRect(_ => {
+      const next = {
+        ...targetRect,
+        x: transformedPoint.x - dragOffset.x,
+        y: transformedPoint.y - dragOffset.y
+      };
+      return applyScript(next, viewport);
+    });
+  }, [isDragging, dragOffset, viewport, applyScript, targetRect]);
+
+  // スクリプトが変更された時にも即座に適用
+  useEffect(() => {
+    setTargetRect(prev => applyScript(prev, viewport));
+  }, [script, viewport, applyScript]);
 
   // ドラッグ終了
   const handleMouseUp = useCallback(() => {
@@ -220,40 +254,21 @@ function App() {
           </svg>
 
           <div className="bottom-info">
-            <table className="info-table">
-              <thead>
-                <tr>
-                  <th>Target</th>
-                  <th>Top</th>
-                  <th>Left</th>
-                  <th>Width</th>
-                  <th>Height</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="info-label">World</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td className="info-value">{worldSize.width}</td>
-                  <td className="info-value">{worldSize.height}</td>
-                </tr>
-                <tr>
-                  <td className="info-label">Viewport</td>
-                  <td className="info-value">{Math.round(viewport.x)}</td>
-                  <td className="info-value">{Math.round(viewport.y)}</td>
-                  <td className="info-value">{Math.round(viewport.width)}</td>
-                  <td className="info-value">{Math.round(viewport.height)}</td>
-                </tr>
-                <tr>
-                  <td className="info-label">Target Rect</td>
-                  <td className="info-value">{Math.round(targetRect.x)}</td>
-                  <td className="info-value">{Math.round(targetRect.y)}</td>
-                  <td className="info-value">{Math.round(targetRect.width)}</td>
-                  <td className="info-value">{Math.round(targetRect.height)}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="script-editor">
+              <div className="script-header">
+                <label>Logic Script (JS)</label>
+                {scriptError && <span className="error-msg">{scriptError}</span>}
+              </div>
+              <textarea 
+                value={script}
+                onChange={(e) => setScript(e.target.value)}
+                spellCheck="false"
+                placeholder="return { ...rect, x: rect.x + 10 };"
+              />
+              <div className="script-footer">
+                Arguments: <code>rect</code> (Target), <code>viewport</code>
+              </div>
+            </div>
           </div>
         </div>
 

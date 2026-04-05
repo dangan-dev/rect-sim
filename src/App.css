@@ -71,54 +71,77 @@ header p {
   width: 100%;
   max-width: 800px;
   background: white;
-  padding: 1rem 1.5rem;
+  padding: 1rem;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   box-sizing: border-box;
   flex-shrink: 0;
+  height: 200px; /* エディタの高さを固定 */
 }
 
-.info-table {
+.script-editor {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  border-collapse: collapse;
-  font-family: monospace;
-  font-size: 0.7rem;
-  color: #334155;
+  gap: 0.5rem;
 }
 
-.info-table th,
-.info-table td {
-  padding: 0.3rem 0.75rem;
-  border-bottom: 1px solid #f1f5f9;
-  text-align: right;
-  vertical-align: middle;
+.script-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* 1列目（Target名）だけ左寄せ */
-.info-table th:first-child,
-.info-table td:first-child {
-  text-align: left;
-}
-
-.info-table th {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+.script-header label {
+  font-size: 0.75rem;
+  font-weight: 600;
   color: #64748b;
-  font-weight: 600;
-  font-size: 0.55rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.info-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.info-label {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+.error-msg {
+  font-size: 0.7rem;
+  color: #ef4444;
   font-weight: 600;
-  color: #0f172a;
-  font-size: 0.65rem;
+  background: #fef2f2;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #fee2e2;
+}
+
+.script-editor textarea {
+  flex: 1;
+  width: 100%;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.85rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #1e293b;
+  resize: none;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.script-editor textarea:focus {
+  border-color: #3b82f6;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.script-footer {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.script-footer code {
+  background: #f1f5f9;
+  padding: 2px 4px;
+  border-radius: 3px;
+  color: #475569;
 }
 
 .draggable-rect {
