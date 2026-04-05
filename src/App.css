@@ -1,0 +1,233 @@
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.container {
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 2rem;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  margin-bottom: 2rem;
+  flex-shrink: 0;
+}
+
+header h1 {
+  margin: 0;
+  color: #333;
+}
+
+header p {
+  color: #666;
+}
+
+.main-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: stretch;
+  width: 100%;
+  flex: 1;
+  min-height: 0; /* flexアイテムが縮めるように設定 */
+}
+
+.stage-container {
+  flex: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1rem;
+  min-height: 0;
+}
+
+.world-svg {
+  width: 100%;
+  max-width: 800px; /* 少し控えめに戻してゆとりを */
+  flex: 1;
+  min-height: 0;
+  display: block;
+  background: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+.bottom-info {
+  display: flex;
+  width: 100%;
+  max-width: 800px; /* SVGと幅を揃えてスッキリ */
+  background: transparent;
+  padding: 0;
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 200px;
+}
+
+.script-editor {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.script-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.5rem;
+}
+
+.script-header label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.error-msg {
+  font-size: 0.7rem;
+  color: #ef4444;
+  font-weight: 600;
+  background: #fef2f2;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  border: 1px solid #fee2e2;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.script-editor textarea {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box; /* はみ出し防止！ */
+  font-family: 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.9rem;
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1e293b;
+  resize: none;
+  line-height: 1.6;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+.script-editor textarea:focus {
+  border-color: #3b82f6;
+  background: #ffffff;
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05);
+  transform: translateY(-1px); /* 少し浮き上がるような演出 */
+}
+
+.script-footer {
+  font-size: 0.75rem;
+  color: #64748b;
+  padding: 0 0.5rem;
+}
+
+.script-footer code {
+  background: #f1f5f9;
+  padding: 2px 4px;
+  border-radius: 3px;
+  color: #475569;
+}
+
+.draggable-rect {
+  cursor: grab;
+  transition: fill-opacity 0.2s;
+}
+
+.draggable-rect:active {
+  cursor: grabbing;
+  fill-opacity: 1;
+}
+
+.info-panel {
+  flex: 2;
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  overflow-y: auto;
+}
+
+.info-panel section {
+  margin-bottom: 1.5rem;
+}
+
+.info-panel h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.0rem;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 0.25rem;
+}
+
+.info-panel ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-panel li {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #212529;
+  padding: 0.2rem 0;
+}
+
+.control-group {
+  margin-bottom: 1rem;
+}
+
+.control-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.button-group button {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #334155;
+  transition: all 0.2s;
+}
+
+.button-group button:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.button-group button:active {
+  background: #e2e8f0;
+  transform: translateY(1px);
+}
+
+.control-group input[type="range"] {
+  width: 100%;
+}
