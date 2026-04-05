@@ -151,7 +151,32 @@ function App() {
               strokeWidth="4"
               strokeDasharray="8,4"
             />
-            <text x={viewport.x} y={viewport.y - 10} fill="#007bff" fontSize="14">Viewport</text>
+            {/* 左上の座標 (カンマが角に来るように配置) */}
+            <text 
+              x={viewport.x} 
+              y={viewport.y-12} 
+              fill="#007bff" 
+              fontSize="16" 
+              fontWeight="bold"
+              textAnchor="middle"
+              dominantBaseline="central"
+              style={{ paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}
+            >
+              ({Math.round(viewport.x)}, {Math.round(viewport.y)})
+            </text>
+            {/* 右下の座標 (カンマが角に来るように配置) */}
+            <text 
+              x={viewport.x + viewport.width} 
+              y={viewport.y + viewport.height+12} 
+              fill="#007bff" 
+              fontSize="16" 
+              fontWeight="bold" 
+              textAnchor="middle"
+              dominantBaseline="central"
+              style={{ paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}
+            >
+              ({Math.round(viewport.x + viewport.width)}, {Math.round(viewport.y + viewport.height)})
+            </text>
 
             {/* 操作対象の矩形 */}
             <rect
