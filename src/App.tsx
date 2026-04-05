@@ -202,7 +202,7 @@ return {
               dominantBaseline="central"
               style={{ pointerEvents: 'none', opacity: 0.5 }}
             >
-              World: {Math.round(state.worldSize.width)} x {Math.round(state.worldSize.height)}
+              {Math.round(state.worldSize.width)} x {Math.round(state.worldSize.height)}
             </text>
             
             {/* グリッド (オプション) */}
