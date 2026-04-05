@@ -9,10 +9,11 @@ interface Rect {
 }
 
 function App() {
-  // シミュレーションの状態を一つにまとめて管理（サクサク動くように！）
+  // シミュレーションの状態を一括管理（エラーもここに含める！）
   const [state, setState] = useState({
     worldSize: { width: 800, height: 600 },
-    targetRect: { x: 100, y: 100, width: 150, height: 100 }
+    targetRect: { x: 100, y: 100, width: 150, height: 100 },
+    scriptError: null as string | null
   });
 
   // ビューポートの状態
@@ -25,7 +26,7 @@ function App() {
 
   // ドラッグ操作の状態
   const [isDragging, setIsDragging] = useState(false);
-  const dragOffsetRef = useRef({ x: 0, y: 0 }); // ドラッグのオフセットをRefで保持
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
 
   // リサイズ時の増分（ステップ）
   const [resizeStep, setResizeStep] = useState(100);
@@ -41,7 +42,6 @@ return {
   worldWidth: maxW,
   worldHeight: world.height
 };`);
-  const [scriptError, setScriptError] = useState<string | null>(null);
 
   // スクリプトを適用する純粋な関数
   const applyScriptInternal = useCallback((rect: Rect, vp: Rect, world: {width: number, height: number}, currentScript: string) => {
@@ -65,17 +65,17 @@ return {
     }
   }, []);
 
-  // 状態を更新するコアロジック（常に最新の state を使うように functional update を使用）
-  const updateSim = useCallback((proposedRect: Rect) => {
+  // 共通の更新ロジック（最新のパラメータを直接渡せるように！）
+  const performUpdate = useCallback((proposedRect: Rect, vp: Rect, currentScript: string) => {
     setState(prev => {
-      const { rect, worldWidth, worldHeight, error } = applyScriptInternal(proposedRect, viewport, prev.worldSize, script);
-      setScriptError(error);
+      const { rect, worldWidth, worldHeight, error } = applyScriptInternal(proposedRect, vp, prev.worldSize, currentScript);
       return {
         targetRect: rect,
-        worldSize: { width: worldWidth, height: worldHeight }
+        worldSize: { width: worldWidth, height: worldHeight },
+        scriptError: error
       };
     });
-  }, [applyScriptInternal, viewport, script]);
+  }, [applyScriptInternal]);
 
   // 手動リサイズ関数
   const handleResize = useCallback((delta: number) => {
@@ -88,10 +88,10 @@ return {
         width: newWidth 
       };
       const { rect, worldWidth, worldHeight, error } = applyScriptInternal(proposed, viewport, prev.worldSize, script);
-      setScriptError(error);
       return {
         targetRect: rect,
-        worldSize: { width: worldWidth, height: worldHeight }
+        worldSize: { width: worldWidth, height: worldHeight },
+        scriptError: error
       };
     });
   }, [applyScriptInternal, viewport, script]);
@@ -143,18 +143,13 @@ return {
         y: transformedPoint.y - dragOffsetRef.current.y
       };
       const { rect, worldWidth, worldHeight, error } = applyScriptInternal(proposed, viewport, prev.worldSize, script);
-      setScriptError(error);
       return {
         targetRect: rect,
-        worldSize: { width: worldWidth, height: worldHeight }
+        worldSize: { width: worldWidth, height: worldHeight },
+        scriptError: error
       };
     });
   }, [isDragging, viewport, script, applyScriptInternal]);
-
-  // スクリプトやViewportが変更された時にも即座に適用
-  useEffect(() => {
-    updateSim(state.targetRect);
-  }, [script, viewport]); // state.targetRect は依存関係から外して、変更時のみ反応させる
 
   // ドラッグ終了
   const handleMouseUp = useCallback(() => {
@@ -191,21 +186,12 @@ return {
             {/* 仮想ワールドの背景 */}
             <rect x="0" y="0" width={state.worldSize.width} height={state.worldSize.height} fill="#f0f0f0" />
             
-            {/* 仮想ワールドのサイズ表示 (中心) */}
-            <text 
-              x={state.worldSize.width / 2} 
-              y={state.worldSize.height / 2} 
-              fill="#94a3b8" 
-              fontSize="24" 
-              fontWeight="bold"
-              textAnchor="middle"
-              dominantBaseline="central"
-              style={{ pointerEvents: 'none', opacity: 0.5 }}
-            >
+            {/* 仮想ワールドのサイズ表示 */}
+            <text x={state.worldSize.width / 2} y={state.worldSize.height / 2} fill="#94a3b8" fontSize="24" fontWeight="bold" textAnchor="middle" dominantBaseline="central" style={{ pointerEvents: 'none', opacity: 0.5 }}>
               {Math.round(state.worldSize.width)} x {Math.round(state.worldSize.height)}
             </text>
             
-            {/* グリッド (オプション) */}
+            {/* グリッド */}
             <defs>
               <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
                 <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#ddd" strokeWidth="1" />
@@ -213,17 +199,8 @@ return {
             </defs>
             <rect x="0" y="0" width={state.worldSize.width} height={state.worldSize.height} fill="url(#grid)" />
 
-            {/* ビューポートのインジケーター */}
-            <rect
-              x={viewport.x}
-              y={viewport.y}
-              width={viewport.width}
-              height={viewport.height}
-              fill="none"
-              stroke="#007bff"
-              strokeWidth="4"
-              strokeDasharray="8,4"
-            />
+            {/* ビューポート */}
+            <rect x={viewport.x} y={viewport.y} width={viewport.width} height={viewport.height} fill="none" stroke="#007bff" strokeWidth="4" strokeDasharray="8,4" />
             
             {/* スクロールバー */}
             {state.worldSize.height > viewport.height && (
@@ -248,23 +225,10 @@ return {
             </text>
 
             {/* 操作対象の矩形 */}
-            <rect
-              x={state.targetRect.x}
-              y={state.targetRect.y}
-              width={state.targetRect.width}
-              height={state.targetRect.height}
-              fill="#ff4757"
-              fillOpacity="0.8"
-              stroke="#c0392b"
-              strokeWidth="2"
-              className="draggable-rect"
-              onMouseDown={handleMouseDown}
-            />
-            {/* Target Rect サイズ表示 (中心) */}
+            <rect x={state.targetRect.x} y={state.targetRect.y} width={state.targetRect.width} height={state.targetRect.height} fill="#ff4757" fillOpacity="0.8" stroke="#c0392b" strokeWidth="2" className="draggable-rect" onMouseDown={handleMouseDown} />
             <text x={state.targetRect.x + state.targetRect.width / 2} y={state.targetRect.y + state.targetRect.height / 2} fill="#ffffff" fontSize="14" fontWeight="bold" textAnchor="middle" dominantBaseline="central" style={{ pointerEvents: 'none' }}>
               {Math.round(state.targetRect.width)} x {Math.round(state.targetRect.height)}
             </text>
-            {/* Target Rect 座標 */}
             <text x={state.targetRect.x} y={state.targetRect.y - 15} fill="#c0392b" fontSize="16" fontWeight="bold" textAnchor="middle" dominantBaseline="central" style={{ pointerEvents: 'none', paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}>
               ({Math.round(state.targetRect.x)}, {Math.round(state.targetRect.y)})
             </text>
@@ -277,17 +241,21 @@ return {
             <div className="script-editor">
               <div className="script-header">
                 <label>Logic Script (JS)</label>
-                {scriptError && <span className="error-msg">{scriptError}</span>}
+                {state.scriptError && <span className="error-msg">{state.scriptError}</span>}
               </div>
               <textarea 
                 value={script}
-                onChange={(e) => setScript(e.target.value)}
+                onChange={(e) => {
+                  const newScript = e.target.value;
+                  setScript(newScript);
+                  performUpdate(state.targetRect, viewport, newScript);
+                }}
                 spellCheck="false"
-                placeholder="return { rect, worldWidth: 800, worldHeight: 600 };"
+                placeholder="return { rect, worldWidth, worldHeight };"
               />
               <div className="script-footer">
                 Arguments: <code>rect</code>, <code>viewport</code>, <code>world</code><br />
-                Return: <code>{`{ rect: {x,y,w,h}, worldWidth, worldHeight }`}</code>
+                Return: <code>{`{ rect, worldWidth, worldHeight }`}</code>
               </div>
             </div>
           </div>
@@ -313,11 +281,17 @@ return {
             <h3>World Controls</h3>
             <div className="control-group">
               <label>World Width</label>
-              <input type="number" min="100" max="5000" value={state.worldSize.width} onChange={(e) => setState(prev => ({ ...prev, worldSize: { ...prev.worldSize, width: Number(e.target.value) || 100 } }))} />
+              <input type="number" min="100" max="5000" value={state.worldSize.width} onChange={(e) => {
+                const val = Number(e.target.value) || 100;
+                setState(prev => ({ ...prev, worldSize: { ...prev.worldSize, width: val } }));
+              }} />
             </div>
             <div className="control-group">
               <label>World Height</label>
-              <input type="number" min="100" max="5000" value={state.worldSize.height} onChange={(e) => setState(prev => ({ ...prev, worldSize: { ...prev.worldSize, height: Number(e.target.value) || 100 } }))} />
+              <input type="number" min="100" max="5000" value={state.worldSize.height} onChange={(e) => {
+                const val = Number(e.target.value) || 100;
+                setState(prev => ({ ...prev, worldSize: { ...prev.worldSize, height: val } }));
+              }} />
             </div>
           </section>
 
@@ -325,11 +299,19 @@ return {
             <h3>Viewport Controls</h3>
             <div className="control-group">
               <label>Width</label>
-              <input type="range" min="100" max="2000" value={viewport.width} onChange={(e) => setViewport(prev => ({ ...prev, width: parseInt(e.target.value) }))} />
+              <input type="range" min="100" max="2000" value={viewport.width} onChange={(e) => {
+                const nextVp = { ...viewport, width: parseInt(e.target.value) };
+                setViewport(nextVp);
+                performUpdate(state.targetRect, nextVp, script);
+              }} />
             </div>
             <div className="control-group">
               <label>Height</label>
-              <input type="range" min="100" max="2000" value={viewport.height} onChange={(e) => setViewport(prev => ({ ...prev, height: parseInt(e.target.value) }))} />
+              <input type="range" min="100" max="2000" value={viewport.height} onChange={(e) => {
+                const nextVp = { ...viewport, height: parseInt(e.target.value) };
+                setViewport(nextVp);
+                performUpdate(state.targetRect, nextVp, script);
+              }} />
             </div>
           </section>
         </aside>
