@@ -36,21 +36,22 @@ function App() {
   const [resizeStep, setResizeStep] = useState(100);
 
   // ユーザー定義のスクリプト（数式）
-  const [script, setScript] = useState<string>(`return {
+  const [script, setScript] = useState<string>(`const maxW = Math.max(world.width, rect.width);
+return {
   rect: {
     ...rect,
     x: Math.max(viewport.x, Math.min(rect.x, viewport.x + viewport.width - rect.width)),
     width: Math.min(rect.width, viewport.width)
   },
-  worldWidth: 800
-  };`);
+  worldWidth: maxW
+};`);
   const [scriptError, setScriptError] = useState<string | null>(null);
 
   // スクリプトを適用して矩形とワールド幅を補正する関数
   const applyScript = useCallback((rect: Rect, vp: Rect): { rect: Rect, worldWidth: number } => {
     try {
-      const fn = new Function('rect', 'viewport', script);
-      const result = fn(rect, vp);
+      const fn = new Function('rect', 'viewport', 'world', script);
+      const result = fn(rect, vp, { width: worldSize.width });
       
       if (result && result.rect && typeof result.worldWidth === 'number') {
         const r = result.rect;
@@ -351,7 +352,7 @@ function App() {
                 placeholder="return { rect, worldWidth: 800 };"
               />
               <div className="script-footer">
-                Arguments: <code>rect</code> (Target), <code>viewport</code><br />
+                Arguments: <code>rect</code> (Target), <code>viewport</code>, <code>world</code><br />
                 Return: <code>{`{ rect: {x,y,w,h}, worldWidth: number }`}</code>
               </div>
             </div>
