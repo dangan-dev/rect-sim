@@ -1,0 +1,174 @@
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 2rem;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+header {
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  margin: 0;
+  color: #333;
+}
+
+header p {
+  color: #666;
+}
+
+.main-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.stage-container {
+  flex: 8;
+  background: #e2e8f0; /* パネルとしての背景色（少し暗め） */
+  border-radius: 8px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+  overflow: auto;
+  border: 1px solid #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* 上寄せ */
+  padding: 2rem;
+  gap: 1.5rem; /* SVGと情報パネルの隙間 */
+  height: max-content; /* コンテンツの高さに合わせる */
+}
+
+.world-svg {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  display: block;
+  background: #ffffff; /* 仮想ウィンドウの背景 */
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  border: 1px solid #94a3b8;
+}
+
+.bottom-info {
+  display: flex;
+  width: 100%;
+  max-width: 800px;
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-sizing: border-box;
+}
+
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: #334155;
+}
+
+.info-table th,
+.info-table td {
+  padding: 0.3rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: right;
+  vertical-align: middle;
+}
+
+/* 1列目（Target名）だけ左寄せ */
+.info-table th:first-child,
+.info-table td:first-child {
+  text-align: left;
+}
+
+.info-table th {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.info-label {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 0.65rem;
+}
+
+.draggable-rect {
+  cursor: grab;
+  transition: fill-opacity 0.2s;
+}
+
+.draggable-rect:active {
+  cursor: grabbing;
+  fill-opacity: 1;
+}
+
+.info-panel {
+  flex: 2;
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.info-panel section {
+  margin-bottom: 1.5rem;
+}
+
+.info-panel h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.0rem;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 0.25rem;
+}
+
+.info-panel ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-panel li {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #212529;
+  padding: 0.2rem 0;
+}
+
+.control-group {
+  margin-bottom: 1rem;
+}
+
+.control-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.control-group input[type="range"] {
+  width: 100%;
+}
