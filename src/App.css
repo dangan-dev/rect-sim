@@ -42,42 +42,35 @@ header p {
 
 .stage-container {
   flex: 8;
-  background: #e2e8f0; /* パネルとしての背景色（少し暗め） */
-  border-radius: 8px;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
-  overflow: auto;
-  border: 1px solid #cbd5e1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start; /* 上寄せ */
-  padding: 2rem;
-  gap: 1.5rem; /* SVGと情報パネルの隙間 */
+  justify-content: flex-start;
+  gap: 1rem;
+  min-height: 0;
 }
 
 .world-svg {
   width: 100%;
-  max-width: 800px;
+  max-width: 800px; /* 少し控えめに戻してゆとりを */
   flex: 1;
   min-height: 0;
   display: block;
-  background: #ffffff; /* 仮想ウィンドウの背景 */
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-  border: 1px solid #94a3b8;
+  background: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
 }
 
 .bottom-info {
   display: flex;
   width: 100%;
-  max-width: 800px;
-  background: white;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  max-width: 800px; /* SVGと幅を揃えてスッキリ */
+  background: transparent;
+  padding: 0;
   box-sizing: border-box;
-  flex-shrink: 0;
-  height: 200px; /* エディタの高さを固定 */
+  flex: 1;
+  min-height: 200px;
 }
 
 .script-editor {
@@ -91,13 +84,15 @@ header p {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 0.5rem;
 }
 
 .script-header label {
   font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
+  font-weight: 700;
+  color: #475569;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .error-msg {
@@ -105,36 +100,41 @@ header p {
   color: #ef4444;
   font-weight: 600;
   background: #fef2f2;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 4px 12px;
+  border-radius: 9999px;
   border: 1px solid #fee2e2;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .script-editor textarea {
   flex: 1;
   width: 100%;
-  font-family: 'Fira Code', 'Courier New', monospace;
-  font-size: 0.85rem;
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #f8fafc;
+  box-sizing: border-box; /* はみ出し防止！ */
+  font-family: 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.9rem;
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
   color: #1e293b;
   resize: none;
-  line-height: 1.5;
+  line-height: 1.6;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
 }
 
 .script-editor textarea:focus {
   border-color: #3b82f6;
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05);
+  transform: translateY(-1px); /* 少し浮き上がるような演出 */
 }
 
 .script-footer {
-  font-size: 0.7rem;
-  color: #94a3b8;
+  font-size: 0.75rem;
+  color: #64748b;
+  padding: 0 0.5rem;
 }
 
 .script-footer code {
