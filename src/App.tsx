@@ -173,7 +173,7 @@ return {
   return (
     <div className="container">
       <header>
-        <h1>viewport-sim</h1>
+        <h1>rect-sim</h1>
         <p>Drag to move. Press +/- to resize (unfocused only).</p>
       </header>
 
