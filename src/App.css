@@ -200,6 +200,34 @@ header p {
   margin-bottom: 0.25rem;
 }
 
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.button-group button {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #334155;
+  transition: all 0.2s;
+}
+
+.button-group button:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.button-group button:active {
+  background: #e2e8f0;
+  transform: translateY(1px);
+}
+
 .control-group input[type="range"] {
   width: 100%;
 }
