@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 
 interface Rect {
@@ -9,8 +9,11 @@ interface Rect {
 }
 
 function App() {
-  // 仮想ウィンドウ（ワールド）のサイズ
-  const [worldSize, setWorldSize] = useState({ width: 800, height: 600 });
+  // シミュレーションの状態を一つにまとめて管理（サクサク動くように！）
+  const [state, setState] = useState({
+    worldSize: { width: 800, height: 600 },
+    targetRect: { x: 100, y: 100, width: 150, height: 100 }
+  });
 
   // ビューポートの状態
   const [viewport, setViewport] = useState<Rect>({
@@ -20,22 +23,14 @@ function App() {
     height: 600
   });
 
-  // 操作対象の矩形（ターゲット）の状態
-  const [targetRect, setTargetRect] = useState<Rect>({
-    x: 100,
-    y: 100,
-    width: 150,
-    height: 100
-  });
-
   // ドラッグ操作の状態
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const dragOffsetRef = useRef({ x: 0, y: 0 }); // ドラッグのオフセットをRefで保持
 
   // リサイズ時の増分（ステップ）
   const [resizeStep, setResizeStep] = useState(100);
 
-  // ユーザー定義のスクリプト（数式）
+  // ユーザー定義のスクリプト
   const [script, setScript] = useState<string>(`const maxW = Math.max(world.width, rect.width);
 return {
   rect: {
@@ -43,62 +38,71 @@ return {
     x: Math.max(viewport.x, Math.min(rect.x, viewport.x + viewport.width - rect.width)),
     width: Math.min(rect.width, viewport.width)
   },
-  worldWidth: maxW
+  worldWidth: maxW,
+  worldHeight: world.height
 };`);
   const [scriptError, setScriptError] = useState<string | null>(null);
 
-  // スクリプトを適用して矩形とワールド幅を補正する関数
-  const applyScript = useCallback((rect: Rect, vp: Rect): { rect: Rect, worldWidth: number } => {
+  // スクリプトを適用する純粋な関数
+  const applyScriptInternal = useCallback((rect: Rect, vp: Rect, world: {width: number, height: number}, currentScript: string) => {
     try {
-      const fn = new Function('rect', 'viewport', 'world', script);
-      const result = fn(rect, vp, { width: worldSize.width });
+      const fn = new Function('rect', 'viewport', 'world', currentScript);
+      const result = fn(rect, vp, world);
       
-      if (result && result.rect && typeof result.worldWidth === 'number') {
-        const r = result.rect;
-        if (typeof r.x === 'number' && typeof r.y === 'number' && 
-            typeof r.width === 'number' && typeof r.height === 'number') {
-          setScriptError(null);
-          return { rect: r, worldWidth: result.worldWidth };
-        }
+      let ww = world.width;
+      let wh = world.height;
+      let r = rect;
+
+      if (result) {
+        if (typeof result.worldWidth === 'number') ww = result.worldWidth;
+        if (typeof result.worldHeight === 'number') wh = result.worldHeight;
+        if (result.rect && typeof result.rect.x === 'number') r = result.rect;
       }
-      throw new Error("Invalid return. Expected { rect: {x,y,w,h}, worldWidth: number }");
+      
+      return { rect: r, worldWidth: ww, worldHeight: wh, error: null };
     } catch (err) {
-      setScriptError(err instanceof Error ? err.message : String(err));
-      return { rect, worldWidth: worldSize.width };
+      return { rect, worldWidth: world.width, worldHeight: world.height, error: err instanceof Error ? err.message : String(err) };
     }
-  }, [script, worldSize.width]);
+  }, []);
+
+  // 状態を更新するコアロジック（常に最新の state を使うように functional update を使用）
+  const updateSim = useCallback((proposedRect: Rect) => {
+    setState(prev => {
+      const { rect, worldWidth, worldHeight, error } = applyScriptInternal(proposedRect, viewport, prev.worldSize, script);
+      setScriptError(error);
+      return {
+        targetRect: rect,
+        worldSize: { width: worldWidth, height: worldHeight }
+      };
+    });
+  }, [applyScriptInternal, viewport, script]);
 
   // 手動リサイズ関数
   const handleResize = useCallback((delta: number) => {
-    setTargetRect(prev => {
-      const newWidth = Math.max(10, prev.width + delta);
-      const diff = prev.width - newWidth;
-      const next = { 
-        ...prev, 
-        x: prev.x + (diff / 2),
+    setState(prev => {
+      const newWidth = Math.max(10, prev.targetRect.width + delta);
+      const diff = prev.targetRect.width - newWidth;
+      const proposed = { 
+        ...prev.targetRect, 
+        x: prev.targetRect.x + (diff / 2),
         width: newWidth 
       };
-      const { rect: updatedRect, worldWidth } = applyScript(next, viewport);
-      setWorldSize(prevWorld => ({ ...prevWorld, width: worldWidth }));
-      return updatedRect;
+      const { rect, worldWidth, worldHeight, error } = applyScriptInternal(proposed, viewport, prev.worldSize, script);
+      setScriptError(error);
+      return {
+        targetRect: rect,
+        worldSize: { width: worldWidth, height: worldHeight }
+      };
     });
-  }, [applyScript, viewport]);
+  }, [applyScriptInternal, viewport, script]);
 
-  // キーボード操作 (+ / - キー)
+  // キーボード操作
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 入力欄にフォーカスがある時は無視するガード
-      if (document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.tagName === 'INPUT') {
-        return;
-      }
-
-      if (e.key === '+' || e.key === '=') {
-        handleResize(resizeStep);
-      } else if (e.key === '-' || e.key === '_') {
-        handleResize(-resizeStep);
-      }
+      if (document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.tagName === 'INPUT') return;
+      if (e.key === '+' || e.key === '=') handleResize(resizeStep);
+      else if (e.key === '-' || e.key === '_') handleResize(-resizeStep);
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [resizeStep, handleResize]);
@@ -114,10 +118,10 @@ return {
     const transformedPoint = point.matrixTransform(svg.getScreenCTM()?.inverse());
 
     setIsDragging(true);
-    setDragOffset({
-      x: transformedPoint.x - targetRect.x,
-      y: transformedPoint.y - targetRect.y
-    });
+    dragOffsetRef.current = {
+      x: transformedPoint.x - state.targetRect.x,
+      y: transformedPoint.y - state.targetRect.y
+    };
   };
 
   // ドラッグ中
@@ -132,24 +136,25 @@ return {
     point.y = e.clientY;
     const transformedPoint = point.matrixTransform(svg.getScreenCTM()?.inverse());
 
-    setTargetRect(_ => {
-      const next = {
-        ...targetRect,
-        x: transformedPoint.x - dragOffset.x,
-        y: transformedPoint.y - dragOffset.y
+    setState(prev => {
+      const proposed = {
+        ...prev.targetRect,
+        x: transformedPoint.x - dragOffsetRef.current.x,
+        y: transformedPoint.y - dragOffsetRef.current.y
       };
-      const { rect: updatedRect, worldWidth } = applyScript(next, viewport);
-      setWorldSize(prevWorld => ({ ...prevWorld, width: worldWidth }));
-      return updatedRect;
+      const { rect, worldWidth, worldHeight, error } = applyScriptInternal(proposed, viewport, prev.worldSize, script);
+      setScriptError(error);
+      return {
+        targetRect: rect,
+        worldSize: { width: worldWidth, height: worldHeight }
+      };
     });
-  }, [isDragging, dragOffset, viewport, applyScript, targetRect]);
+  }, [isDragging, viewport, script, applyScriptInternal]);
 
-  // スクリプトが変更された時にも即座に適用
+  // スクリプトやViewportが変更された時にも即座に適用
   useEffect(() => {
-    const { rect: updatedRect, worldWidth } = applyScript(targetRect, viewport);
-    setTargetRect(updatedRect);
-    setWorldSize(prevWorld => ({ ...prevWorld, width: worldWidth }));
-  }, [script, viewport, applyScript]);
+    updateSim(state.targetRect);
+  }, [script, viewport]); // state.targetRect は依存関係から外して、変更時のみ反応させる
 
   // ドラッグ終了
   const handleMouseUp = useCallback(() => {
@@ -180,11 +185,25 @@ return {
       <div className="main-layout">
         <div className="stage-container">
           <svg
-            viewBox={`-40 -40 ${worldSize.width + 80} ${worldSize.height + 80}`}
+            viewBox={`-40 -40 ${state.worldSize.width + 80} ${state.worldSize.height + 80}`}
             className="world-svg"
           >
             {/* 仮想ワールドの背景 */}
-            <rect x="0" y="0" width={worldSize.width} height={worldSize.height} fill="#f0f0f0" />
+            <rect x="0" y="0" width={state.worldSize.width} height={state.worldSize.height} fill="#f0f0f0" />
+            
+            {/* 仮想ワールドのサイズ表示 (中心) */}
+            <text 
+              x={state.worldSize.width / 2} 
+              y={state.worldSize.height / 2} 
+              fill="#94a3b8" 
+              fontSize="24" 
+              fontWeight="bold"
+              textAnchor="middle"
+              dominantBaseline="central"
+              style={{ pointerEvents: 'none', opacity: 0.5 }}
+            >
+              World: {Math.round(state.worldSize.width)} x {Math.round(state.worldSize.height)}
+            </text>
             
             {/* グリッド (オプション) */}
             <defs>
@@ -192,7 +211,7 @@ return {
                 <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#ddd" strokeWidth="1" />
               </pattern>
             </defs>
-            <rect x="0" y="0" width={worldSize.width} height={worldSize.height} fill="url(#grid)" />
+            <rect x="0" y="0" width={state.worldSize.width} height={state.worldSize.height} fill="url(#grid)" />
 
             {/* ビューポートのインジケーター */}
             <rect
@@ -206,91 +225,34 @@ return {
               strokeDasharray="8,4"
             />
             
-            {/* 垂直スクロールバー (仮想) */}
-            {worldSize.height > viewport.height && (
+            {/* スクロールバー */}
+            {state.worldSize.height > viewport.height && (
               <g className="scrollbar-v">
-                {/* トラック */}
-                <rect 
-                  x={viewport.x + viewport.width - 12} 
-                  y={viewport.y + 4} 
-                  width={8} 
-                  height={viewport.height - 8} 
-                  fill="#cbd5e1" 
-                  fillOpacity="0.3"
-                  rx="4"
-                />
-                {/* つまみ */}
-                <rect 
-                  x={viewport.x + viewport.width - 11} 
-                  y={viewport.y + 4 + (viewport.y / worldSize.height) * (viewport.height - 8)} 
-                  width={6} 
-                  height={(viewport.height / worldSize.height) * (viewport.height - 8)} 
-                  fill="#64748b" 
-                  fillOpacity="0.6"
-                  rx="3"
-                />
+                <rect x={viewport.x + viewport.width - 12} y={viewport.y + 4} width={8} height={viewport.height - 8} fill="#cbd5e1" fillOpacity="0.3" rx="4" />
+                <rect x={viewport.x + viewport.width - 11} y={viewport.y + 4 + (viewport.y / state.worldSize.height) * (viewport.height - 8)} width={6} height={(viewport.height / state.worldSize.height) * (viewport.height - 8)} fill="#64748b" fillOpacity="0.6" rx="3" />
               </g>
             )}
-
-            {/* 水平スクロールバー (仮想) */}
-            {worldSize.width > viewport.width && (
+            {state.worldSize.width > viewport.width && (
               <g className="scrollbar-h">
-                {/* トラック */}
-                <rect 
-                  x={viewport.x + 4} 
-                  y={viewport.y + viewport.height - 12} 
-                  width={viewport.width - 8} 
-                  height={8} 
-                  fill="#cbd5e1" 
-                  fillOpacity="0.3"
-                  rx="4"
-                />
-                {/* つまみ */}
-                <rect 
-                  x={viewport.x + 4 + (viewport.x / worldSize.width) * (viewport.width - 8)} 
-                  y={viewport.y + viewport.height - 11} 
-                  width={(viewport.width / worldSize.width) * (viewport.width - 8)} 
-                  height={6} 
-                  fill="#64748b" 
-                  fillOpacity="0.6"
-                  rx="3"
-                />
+                <rect x={viewport.x + 4} y={viewport.y + viewport.height - 12} width={viewport.width - 8} height={8} fill="#cbd5e1" fillOpacity="0.3" rx="4" />
+                <rect x={viewport.x + 4 + (viewport.x / state.worldSize.width) * (viewport.width - 8)} y={viewport.y + viewport.height - 11} width={(viewport.width / state.worldSize.width) * (viewport.width - 8)} height={6} fill="#64748b" fillOpacity="0.6" rx="3" />
               </g>
             )}
 
-            {/* 左上の座標 */}
-            <text 
-              x={viewport.x} 
-              y={viewport.y-12} 
-              fill="#007bff" 
-              fontSize="16" 
-              fontWeight="bold"
-              textAnchor="middle"
-              dominantBaseline="central"
-              style={{ paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}
-            >
+            {/* ビューポート座標 */}
+            <text x={viewport.x} y={viewport.y-12} fill="#007bff" fontSize="16" fontWeight="bold" textAnchor="middle" dominantBaseline="central" style={{ paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}>
               ({Math.round(viewport.x)}, {Math.round(viewport.y)})
             </text>
-            {/* 右下の座標 */}
-            <text 
-              x={viewport.x + viewport.width} 
-              y={viewport.y + viewport.height+12} 
-              fill="#007bff" 
-              fontSize="16" 
-              fontWeight="bold" 
-              textAnchor="middle"
-              dominantBaseline="central"
-              style={{ paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}
-            >
+            <text x={viewport.x + viewport.width} y={viewport.y + viewport.height+12} fill="#007bff" fontSize="16" fontWeight="bold" textAnchor="middle" dominantBaseline="central" style={{ paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}>
               ({Math.round(viewport.x + viewport.width)}, {Math.round(viewport.y + viewport.height)})
             </text>
 
             {/* 操作対象の矩形 */}
             <rect
-              x={targetRect.x}
-              y={targetRect.y}
-              width={targetRect.width}
-              height={targetRect.height}
+              x={state.targetRect.x}
+              y={state.targetRect.y}
+              width={state.targetRect.width}
+              height={state.targetRect.height}
               fill="#ff4757"
               fillOpacity="0.8"
               stroke="#c0392b"
@@ -299,43 +261,15 @@ return {
               onMouseDown={handleMouseDown}
             />
             {/* Target Rect サイズ表示 (中心) */}
-            <text 
-              x={targetRect.x + targetRect.width / 2} 
-              y={targetRect.y + targetRect.height / 2} 
-              fill="#ffffff" 
-              fontSize="14" 
-              fontWeight="bold"
-              textAnchor="middle"
-              dominantBaseline="central"
-              style={{ pointerEvents: 'none' }}
-            >
-              {Math.round(targetRect.width)} x {Math.round(targetRect.height)}
+            <text x={state.targetRect.x + state.targetRect.width / 2} y={state.targetRect.y + state.targetRect.height / 2} fill="#ffffff" fontSize="14" fontWeight="bold" textAnchor="middle" dominantBaseline="central" style={{ pointerEvents: 'none' }}>
+              {Math.round(state.targetRect.width)} x {Math.round(state.targetRect.height)}
             </text>
-            {/* Target Rect 左上の座標 */}
-            <text 
-              x={targetRect.x} 
-              y={targetRect.y - 15} 
-              fill="#c0392b" 
-              fontSize="16" 
-              fontWeight="bold"
-              textAnchor="middle"
-              dominantBaseline="central"
-              style={{ pointerEvents: 'none', paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}
-            >
-              ({Math.round(targetRect.x)}, {Math.round(targetRect.y)})
+            {/* Target Rect 座標 */}
+            <text x={state.targetRect.x} y={state.targetRect.y - 15} fill="#c0392b" fontSize="16" fontWeight="bold" textAnchor="middle" dominantBaseline="central" style={{ pointerEvents: 'none', paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}>
+              ({Math.round(state.targetRect.x)}, {Math.round(state.targetRect.y)})
             </text>
-            {/* Target Rect 右下の座標 */}
-            <text 
-              x={targetRect.x + targetRect.width} 
-              y={targetRect.y + targetRect.height + 15} 
-              fill="#c0392b" 
-              fontSize="16" 
-              fontWeight="bold" 
-              textAnchor="middle"
-              dominantBaseline="central"
-              style={{ pointerEvents: 'none', paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}
-            >
-              ({Math.round(targetRect.x + targetRect.width)}, {Math.round(targetRect.y + targetRect.height)})
+            <text x={state.targetRect.x + state.targetRect.width} y={state.targetRect.y + state.targetRect.height + 15} fill="#c0392b" fontSize="16" fontWeight="bold" textAnchor="middle" dominantBaseline="central" style={{ pointerEvents: 'none', paintOrder: 'stroke', stroke: 'white', strokeWidth: '4px' }}>
+              ({Math.round(state.targetRect.x + state.targetRect.width)}, {Math.round(state.targetRect.y + state.targetRect.height)})
             </text>
           </svg>
 
@@ -349,11 +283,11 @@ return {
                 value={script}
                 onChange={(e) => setScript(e.target.value)}
                 spellCheck="false"
-                placeholder="return { rect, worldWidth: 800 };"
+                placeholder="return { rect, worldWidth: 800, worldHeight: 600 };"
               />
               <div className="script-footer">
-                Arguments: <code>rect</code> (Target), <code>viewport</code>, <code>world</code><br />
-                Return: <code>{`{ rect: {x,y,w,h}, worldWidth: number }`}</code>
+                Arguments: <code>rect</code>, <code>viewport</code>, <code>world</code><br />
+                Return: <code>{`{ rect: {x,y,w,h}, worldWidth, worldHeight }`}</code>
               </div>
             </div>
           </div>
@@ -371,12 +305,19 @@ return {
             </div>
             <div className="control-group">
               <label>Step Size</label>
-              <input 
-                type="number" min="1" max="100" 
-                value={resizeStep} 
-                onChange={(e) => setResizeStep(Number(e.target.value) || 1)}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '4px' }}
-              />
+              <input type="number" min="1" max="1000" value={resizeStep} onChange={(e) => setResizeStep(Number(e.target.value) || 1)} />
+            </div>
+          </section>
+
+          <section>
+            <h3>World Controls</h3>
+            <div className="control-group">
+              <label>World Width</label>
+              <input type="number" min="100" max="5000" value={state.worldSize.width} onChange={(e) => setState(prev => ({ ...prev, worldSize: { ...prev.worldSize, width: Number(e.target.value) || 100 } }))} />
+            </div>
+            <div className="control-group">
+              <label>World Height</label>
+              <input type="number" min="100" max="5000" value={state.worldSize.height} onChange={(e) => setState(prev => ({ ...prev, worldSize: { ...prev.worldSize, height: Number(e.target.value) || 100 } }))} />
             </div>
           </section>
 
@@ -384,35 +325,11 @@ return {
             <h3>Viewport Controls</h3>
             <div className="control-group">
               <label>Width</label>
-              <input 
-                type="range" min="100" max="1200" 
-                value={viewport.width} 
-                onChange={(e) => setViewport(prev => {
-                  const newWidth = parseInt(e.target.value);
-                  const diff = prev.width - newWidth;
-                  return {
-                    ...prev,
-                    x: prev.x + (diff / 2),
-                    width: newWidth
-                  };
-                })} 
-              />
+              <input type="range" min="100" max="2000" value={viewport.width} onChange={(e) => setViewport(prev => ({ ...prev, width: parseInt(e.target.value) }))} />
             </div>
             <div className="control-group">
               <label>Height</label>
-              <input 
-                type="range" min="100" max="1200" 
-                value={viewport.height} 
-                onChange={(e) => setViewport(prev => {
-                  const newHeight = parseInt(e.target.value);
-                  const diff = prev.height - newHeight;
-                  return {
-                    ...prev,
-                    y: prev.y + (diff / 2),
-                    height: newHeight
-                  };
-                })} 
-              />
+              <input type="range" min="100" max="2000" value={viewport.height} onChange={(e) => setViewport(prev => ({ ...prev, height: parseInt(e.target.value) }))} />
             </div>
           </section>
         </aside>
